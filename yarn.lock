@@ -4664,6 +4664,11 @@ jsprim@^1.2.2:
     json-schema "0.2.3"
     verror "1.10.0"
 
+jsqr@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/jsqr/-/jsqr-1.2.0.tgz#f93fc65fa7d1ded78b1bcb020fa044352b04261a"
+  integrity sha512-wKcQS9QC2VHGk7aphWCp1RrFyC0CM6fMgC5prZZ2KV/Lk6OKNoCod9IR6bao+yx3KPY0gZFC5dc+h+KFzCI0Wg==
+
 killable@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npm.taobao.org/killable/download/killable-1.0.1.tgz#4c8ce441187a061c7474fb87ca08e2a638194892"
@@ -7838,6 +7843,11 @@ vue-hot-reload-api@^2.3.0:
   version "2.3.3"
   resolved "https://registry.npm.taobao.org/vue-hot-reload-api/download/vue-hot-reload-api-2.3.3.tgz#2756f46cb3258054c5f4723de8ae7e87302a1ccf"
   integrity sha1-J1b0bLMlgFTF9HI96K5+hzAqHM8=
+
+vue-html5plus@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/vue-html5plus/-/vue-html5plus-1.0.0.tgz#ccb0dffd8be1f123943bb56a80a52573e4ff0e52"
+  integrity sha512-M3NtDVS1VUvHU1BBhk8NyznuOQhwZQ8AxszYeKrnKuH8z0p4zSMijENmplaOEVUXd+6Mj0WbNjkrbGy5AGhaJQ==
 
 vue-loader@^15.7.0:
   version "15.7.0"

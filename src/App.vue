@@ -1,14 +1,16 @@
 <template>
   <div id="app">
-     
     <call-camera></call-camera>
-    
-    
   </div>
+     
+   
+    
+    
 </template>
 
 <script>
-import CallCamera from '@/components/CallCamera.vue'
+import CallCamera from './components/CallCamera'
+
 
 export default {
   name: 'app',
@@ -19,6 +21,9 @@ export default {
     openNew(){
       console.log(this.$router)
     }
+  },
+  mounted(){
+    
   }
 }
 </script>

@@ -1,11 +1,14 @@
 <template>
   <div class="camera">
-    <div class="btn btn-position" @click="callCamera">唤起android相机</div>
-    <div class="btn btn-position1" @click="exit1">退出全屏</div>
-    <div class="camareWrap" >
+    <div class="btn" @click="startTake()">唤起android相机</div>
+
+    <div class="camareWrap" v-show="isFull===true" ref="cwrap">
+      <div class="btn btn-position" v-show="isFull===true" @click="exit()">返回</div>
       <!-- <video ref="video"></video> -->
       <video
+        v-show="isFull===true"
         ref="video"
+        preload="metadata"
         x5-video-player-type="h5"
         x5-video-player-fullscreen="true"
         x5-video-orientation="portrait"
@@ -16,12 +19,14 @@
   </div>
 </template>
 <script>
-import { setTimeout } from "timers";
-// import callCamera from "@/utils/callCamera.js";
+import jsQR from "jsqr";
+import { decode } from "punycode";
+import { all } from 'q';
 export default {
   data() {
     return {
       deviceIds: [],
+      isFull: false,
       isPhone: false,
       agents: [
         "android",
@@ -31,18 +36,20 @@ export default {
         "ipad",
         "ipod"
       ],
-      streaming: null
+      streaming: null,
+      randomnum: "",
+      timer: null
     };
   },
   methods: {
     callCamera() {
-      this.appBack();
+    
+     
+
       if (navigator.mediaDevices === undefined) {
         navigator.mediaDevices = {};
       }
 
-      // 一些浏览器部分支持 mediaDevices。我们不能直接给对象设置 getUserMedia
-      // 因为这样可能会覆盖已有的属性。这里我们只会在没有getUserMedia属性的时候添加它。
       if (navigator.mediaDevices.getUserMedia === undefined) {
         navigator.mediaDevices.getUserMedia = function(constraints) {
           // 首先，如果有getUserMedia的话，就获得它
@@ -62,21 +69,24 @@ export default {
           });
         };
       }
-      
 
-      let deviceIdobj = this.isPhone
-        ? this.deviceIds.find(d => d.label.indexOf("back") > -1)
-        : this.deviceIds[this.deviceIds.length - 1];
+      let deviceIndex = this.isPhone
+        ? this.deviceIds.findIndex(d => d.kind === "videoinput") + 1
+        : this.deviceIds.length - 1;
+
       let video = this.$refs.video;
       const _this = this;
 
-      //
+      // alert('full',JSON.stringify(deviceIdobj),deviceIdobj.deviceId )
 
       navigator.mediaDevices
         .getUserMedia({
-          video: { deviceId: deviceIdobj.deviceId }
+          // video: { deviceId: this.deviceIds[deviceIndex].deviceId}
+          video: true
         })
         .then(function(stream) {
+          alert(stream)
+         
           _this.streaming = stream;
 
           // _this.handleBack()
@@ -90,33 +100,39 @@ export default {
           video.onloadedmetadata = function() {
             video.play();
           };
+          // _this.scan()
         })
         .catch(function(err) {
-          alert(err.name + ": " + err.message);
+          
+          if(err){
+             _this.isFull = false
+             console.log(err)
+             alert(err);
+
+          }
         });
-        this.fullScreen(video);
     },
     fnback() {
       // alert("返回啦");
-      if(!this.streaming)return
+      if (!this.streaming) return;
       const track = this.streaming.getTracks();
       track[0].stop();
       this.streaming = null;
       // this.exitFullScreen(document)
-      
     },
     appBack() {
-      alert(document.URL);
-      let randomnum = Math.random();
+      console.log(this.randomnum, document.URL);
+
+      let u = document.URL.replace(this.randomnum, "");
+      console.log(u);
+      this.randomnum = Math.random();
 
       if (window.history && window.history.pushState) {
-        history.pushState(null, null, document.URL + randomnum);
+        history.pushState(null, null, u + this.randomnum);
         window.addEventListener("popstate", this.fnback, false);
       }
     },
     fullScreen(element) {
-      // document.webkitFullscreenElement;
-      console.log(element);
       var requestMethod =
         element.requestFullScreen ||
         element.webkitRequestFullScreen ||
@@ -125,25 +141,24 @@ export default {
       if (requestMethod) {
         requestMethod.call(element);
       } else if (typeof window.ActiveXObject !== "undefined") {
-        // var wscript = new ActiveXObject("WScript.Shell");
-        // if (wscript !== null) {
-        //   wscript.SendKeys("{F11}");
-        // }
       }
+      this.isFull = true;
     },
-    exit1() {
-      setTimeout(() => this.exitFullScreen(document), 2000);
-      // this.exitFullScreen(document)
+    exit() {
+      this.stopTake();
+      this.isFull = false;
+      this.exitFullScreen();
     },
-    exitFullScreen(element) {
+    exitFullScreen() {
+      // document.webkitExitFullscreen()
       var exitMethod =
-        element.exitFullscreen ||
-        element.webkitExitFullscreen ||
-        element.mozCancelFullScreen ||
-        element.msExitFullscreen;
+        document.exitFullscreen ||
+        document.webkitExitFullscreen ||
+        document.mozCancelFullScreen ||
+        document.msExitFullscreen;
       if (exitMethod) {
         // exitMethod.call(element);
-        setTimeout(() => exitMethod.call(element), 2000);
+        setTimeout(() => exitMethod.call(document), 200);
       } else if (typeof window.ActiveXObject !== "undefined") {
         // var wscript = new ActiveXObject("WScript.Shell");
         // if (wscript !== null) {
@@ -152,67 +167,108 @@ export default {
       }
     },
     handleBack() {
-      let eventName = ''
+      let eventName = "webkitfullscreenchange";
       window.addEventListener(
         "webkitfullscreenchange",
         e => {
           // console.log(e)
-          e.preventDefault();
-          let isFull =
+
+          let isFull1 =
             window.fullScreen ||
             document.webkitIsFullScreen ||
             document.msFullscreenEnabled;
-          alert(isFull)
-          if (!isFull) {
-            const track = this.streaming.getTracks();
-            track[0].stop();
-            this.streaming = null;
+          // alert(isFull)
+          if (!isFull1 && this.streaming) {
+            console.log("stop");
+            this.stopTake();
           }
         },
         false
       );
     },
-    isFullScreen() {}
+    startTake() {
+      //
+      this.fullScreen(document.documentElement);
+      this.callCamera();
+    },
+    stopTake() {
+      const track = this.streaming ? this.streaming.getTracks() : null;
+      if (!track) return;
+      track[0].stop();
+      this.streaming = null;
+      cancelAnimationFrame(this.timer);
+    },
+    scan() {
+      let canvasImgData = this.takePhoto();
+
+      this.decodePhoto(canvasImgData);
+      this.timer = requestAnimationFrame(this.scan);
+    },
+    takePhoto() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 200;
+      canvas.height = 200;
+      const context = canvas.getContext("2d");
+
+      let video = document.querySelector("video");
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      return context.getImageData(0, 0, canvas.width, canvas.height);
+    },
+
+    decodePhoto(canvasImgData) {
+      const code = jsQR(
+        canvasImgData.data,
+        canvasImgData.width,
+        canvasImgData.height
+      );
+      if (code) {
+        // alert(JSON.stringify(code))
+        // 需要的数据:code.data
+        this.exitFullScreen();
+      }
+    }
   },
   watch: {
-    //  streaming(n,o){
-    //    if(!n){
-    //      setTimeout(()=>this.exitFullScreen(document),2000)
-    //    }
-    //  }
-  },
-  beforeMount() {
-    console.log("创建前：");
-    console.log(window);
-  },
-  mounted() {
-    this.handleBack()
+    streaming(n, o) {
+      console.log(n, o);
+      alert(n)
+      if (!n || (n && !this.isFull)) {
+        
+        this.exit();
+      } else {
+       
 
+      }
+    }
+  },
+  beforeMount() {},
+  mounted() {
     let userAgentInfo = navigator.userAgent.toLowerCase();
 
     this.agents.forEach(i => {
       if (userAgentInfo.indexOf(i) > -1) this.isPhone = true;
       return;
     });
-    // this.isPhone =
-    //   this.agents.findIndex(i => userAgentInfo.indexOf(i) > -1) > -1
-    //     ? true
-    //     : false;
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-      alert("不支持 enumerateDevices() .");
+      console.log("浏览器不支持调用摄像头");
       return;
     }
     const _this = this;
+    
     navigator.mediaDevices
       .enumerateDevices()
       .then(devices => {
+        alert(devices)
         console.log(devices);
         devices.forEach(function(device) {
           _this.deviceIds.push(device);
         });
       })
       .catch(function(err) {
-        alert(err.name + ": " + err.message);
+        // alert(err.name + ": " + err.message);
       });
   },
   destroyed() {
@@ -228,25 +284,22 @@ export default {
 .btn-position {
   position: absolute;
   top: 0;
-  left: 0;
-  height: auto;
-  z-index: 2;
-}
-.btn-position1 {
-  position: absolute;
-  top: 0;
   right: 0;
+  padding: 5px;
+  color: #fff;
   height: auto;
   z-index: 2;
 }
+
 .camareWrap {
   position: relative;
   left: 0;
   top: 0;
   background: #000;
   overflow: hidden;
-  /* height: 100%; */
+  height: 100%;
 }
+
 .camera {
   height: 100%;
   /* overflow: hidden; */
@@ -254,21 +307,27 @@ export default {
 
 video {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-  transform-origin: 50% 50%;
-  height: 0;
-  width: 0;
-}
-.camareWrap:-webkit-full-screen {
-  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
+
+  z-index: 1;
 }
+
 .camareWrap::backdrop {
   height: 0;
   display: none;
+}
+
+canvas {
+  position: absolute;
+  border: 1px solid #ccc;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
 }
 </style>
 

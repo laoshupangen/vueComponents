@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
+    "jsqr": "^1.2.0",
     "vue": "^2.6.10",
+    "vue-html5plus": "^1.0.0",
     "vue-router": "^3.0.7"
   },
   "devDependencies": {
