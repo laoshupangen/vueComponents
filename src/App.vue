@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <call-camera></call-camera>
+    <div @click="start">开始</div>
+    <call-camera :show.sync="show" v-model="value" ></call-camera>
   </div>
      
    
@@ -17,9 +18,24 @@ export default {
   components: {
     CallCamera
   },
+  data(){
+    return{
+      show:false,
+      value:{}
+    }
+  },
   methods:{
     openNew(){
       console.log(this.$router)
+    },
+    start(){
+      console.log('start')
+     this.show = true
+    }
+  },
+  watch:{
+    value(n,o){
+      console.log(n)
     }
   },
   mounted(){

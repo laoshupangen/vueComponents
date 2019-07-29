@@ -10,7 +10,7 @@ const onPlusReady = function(callback,context=this){
   if(window.plus){
     callback.call(context)
   }else{
-    console.log(context)
+    
     document.addEventListener('plusready', callback.bind(context))
   }
 }

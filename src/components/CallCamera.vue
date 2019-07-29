@@ -1,14 +1,13 @@
 <template>
-  <div class="camera">
-    <div class="btn" @click="startTake()">唤起android相机</div>
-
-    <div class="camareWrap" v-show="isFull===true" ref="cwrap">
-      <div class="btn btn-position" v-show="isFull===true" @click="exit()">返回</div>
+  
+    <div class="camareWrap" v-if="show&&isFull" ref="cwrap">
+      <div class="btn btn-position"  @click="exit()">取消</div>
       <!-- <video ref="video"></video> -->
       <video
-        v-show="isFull===true"
+       
         ref="video"
-        preload="metadata"
+        id="video"
+        height="100%"
         x5-video-player-type="h5"
         x5-video-player-fullscreen="true"
         x5-video-orientation="portrait"
@@ -16,12 +15,11 @@
         playsinline="true"
       ></video>
     </div>
-  </div>
+  
 </template>
 <script>
 import jsQR from "jsqr";
-import { decode } from "punycode";
-import { all } from 'q';
+
 export default {
   data() {
     return {
@@ -41,11 +39,17 @@ export default {
       timer: null
     };
   },
+  props: {
+    value: {
+      type: Object
+    },
+    show:{
+      type:Boolean,
+      required:true
+    }
+  },
   methods: {
     callCamera() {
-    
-     
-
       if (navigator.mediaDevices === undefined) {
         navigator.mediaDevices = {};
       }
@@ -74,19 +78,21 @@ export default {
         ? this.deviceIds.findIndex(d => d.kind === "videoinput") + 1
         : this.deviceIds.length - 1;
 
-      let video = this.$refs.video;
+     
+     
       const _this = this;
 
       // alert('full',JSON.stringify(deviceIdobj),deviceIdobj.deviceId )
 
       navigator.mediaDevices
         .getUserMedia({
-          // video: { deviceId: this.deviceIds[deviceIndex].deviceId}
-          video: true
+          video: { deviceId: this.deviceIds[deviceIndex].deviceId}
+          // video: true
         })
         .then(function(stream) {
-          alert(stream)
-         
+           let video = _this.$refs.video;
+           
+
           _this.streaming = stream;
 
           // _this.handleBack()
@@ -100,15 +106,13 @@ export default {
           video.onloadedmetadata = function() {
             video.play();
           };
-          // _this.scan()
+          _this.scan()
         })
         .catch(function(err) {
-          
-          if(err){
-             _this.isFull = false
-             console.log(err)
-             alert(err);
-
+          if (err) {
+            _this.isFull = false;
+            alert('PlayError',err);
+            
           }
         });
     },
@@ -133,6 +137,8 @@ export default {
       }
     },
     fullScreen(element) {
+      console.log(element)
+      // alert(element)
       var requestMethod =
         element.requestFullScreen ||
         element.webkitRequestFullScreen ||
@@ -147,18 +153,20 @@ export default {
     exit() {
       this.stopTake();
       this.isFull = false;
+      this.$emit('update:show',false)
       this.exitFullScreen();
     },
     exitFullScreen() {
       // document.webkitExitFullscreen()
+      let element = this.$refs.cwrap
       var exitMethod =
-        document.exitFullscreen ||
-        document.webkitExitFullscreen ||
-        document.mozCancelFullScreen ||
-        document.msExitFullscreen;
+        element.exitFullscreen ||
+        element.webkitExitFullscreen ||
+        element.mozCancelFullScreen ||
+        element.msExitFullscreen;
       if (exitMethod) {
         // exitMethod.call(element);
-        setTimeout(() => exitMethod.call(document), 200);
+        setTimeout(() => exitMethod.call(element), 200);
       } else if (typeof window.ActiveXObject !== "undefined") {
         // var wscript = new ActiveXObject("WScript.Shell");
         // if (wscript !== null) {
@@ -188,8 +196,9 @@ export default {
     },
     startTake() {
       //
-      this.fullScreen(document.documentElement);
-      this.callCamera();
+      console.log(document)
+      this.fullScreen(this.$el);
+      // this.callCamera();
     },
     stopTake() {
       const track = this.streaming ? this.streaming.getTracks() : null;
@@ -226,54 +235,63 @@ export default {
       if (code) {
         // alert(JSON.stringify(code))
         // 需要的数据:code.data
-        this.exitFullScreen();
+        this.$emit("input", code);
+        this.exit()
       }
+    },
+   async init() {
+      let userAgentInfo = navigator.userAgent.toLowerCase();
+
+      this.agents.forEach(i => {
+        if (userAgentInfo.indexOf(i) > -1) this.isPhone = true;
+        return;
+      });
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        alert("浏览器不支持调用摄像头");
+        return;
+      }
+      const _this = this;
+      try{
+        let devices =await navigator.mediaDevices.enumerateDevices()
+       
+        devices.forEach(function(device) {
+            _this.deviceIds.push(device);
+          });
+          this.startTake()
+
+      }catch(err){
+        alert('getDeviceError:'+err)
+
+      }
+
+     
+       
+     
     }
   },
   watch: {
     streaming(n, o) {
-      console.log(n, o);
-      alert(n)
-      if (!n || (n && !this.isFull)) {
-        
+      if (!n || (n && !this.isFull && this.show)) {
         this.exit();
       } else {
-       
-
       }
-    }
+    },
+    show(n,o){
+      console.log(n)
+      if(n){
+        this.isFull = true
+        this.init()
+      }
+     
+    },
+    
   },
   beforeMount() {},
   mounted() {
-    let userAgentInfo = navigator.userAgent.toLowerCase();
-
-    this.agents.forEach(i => {
-      if (userAgentInfo.indexOf(i) > -1) this.isPhone = true;
-      return;
-    });
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-      console.log("浏览器不支持调用摄像头");
-      return;
-    }
-    const _this = this;
-    
-    navigator.mediaDevices
-      .enumerateDevices()
-      .then(devices => {
-        alert(devices)
-        console.log(devices);
-        devices.forEach(function(device) {
-          _this.deviceIds.push(device);
-        });
-      })
-      .catch(function(err) {
-        // alert(err.name + ": " + err.message);
-      });
+    console.log(this.show)
   },
-  destroyed() {
-    window.removeEventListener("popstate", this.fnback, false);
-  }
+  
 };
 </script>
 <style scoped>
@@ -292,11 +310,18 @@ export default {
 }
 
 .camareWrap {
-  position: relative;
+  position: fixed;
   left: 0;
   top: 0;
+  right: 0;
+  bottom: 0;
   background: #000;
   overflow: hidden;
+  height: 100%;
+  z-index: 9999;
+}
+.camareWrap:fullscreen{
+  width: 100%;
   height: 100%;
 }
 
@@ -312,7 +337,7 @@ video {
   right: 0;
   bottom: 0;
   width: 100%;
-
+  
   z-index: 1;
 }
 
